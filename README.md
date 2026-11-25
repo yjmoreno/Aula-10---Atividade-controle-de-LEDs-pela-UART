@@ -232,4 +232,4 @@ A porta no Mac aparece com `ls /dev/cu.usbmodem*`. Usamos o Python do PlatformIO
 
 ## 8. Uso de IA
 
-Usamos o Claude (Anthropic) para ajudar a escrever os testes, o código, o script e o texto. A dupla rodou os testes, gravou a placa, executou o roteiro e registrou as evidências.
+Usamos o Claude (Anthropic) como apoio durante o desenvolvimento. A dupla rodou os testes, gravou a placa, executou o roteiro, analisou as falhas e registrou as evidências.
