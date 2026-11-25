@@ -1,0 +1,34 @@
+$ ./roda_testes.sh   (durante a refatoracao: troquei ">" por ">=" no prazo por engano)
+== Protocolo ==
+[  OK  ] T01 entrada valida simples
+[  OK  ] T02 CHECK por XOR
+[  OK  ] T03 as 5 acoes sao aceitas
+[  OK  ] T04 entrada vazia
+[  OK  ] T05 ID errado
+[  OK  ] T06 CHECK errado
+[  OK  ] T07 acao invalida
+[  OK  ] T08 transmissao interrompida (timeout)
+[  OK  ] T09 interrompida, detectada no proximo byte
+[  OK  ] T10 lixo antes do pacote
+[  OK  ] T11 buffer grande: 1000 pacotes seguidos
+[  OK  ] T12 buffer grande: 10000 bytes de lixo
+    FALHOU linha 191: rx.comando().acao == ACAO_LIGAR
+[FALHOU] T13 intervalo igual ao timeout
+== Bonus CRC-8 ==
+[  OK  ] T14 CRC-8 valor de referencia
+[  OK  ] T15 receptor no modo CRC-8
+== LED ==
+[  OK  ] T20 LIGAR
+[  OK  ] T21 DESLIGAR
+[  OK  ] T22 TOGGLE
+[  OK  ] T23 PISCA 1 s
+[  OK  ] T24 PISCA 2 s
+[  OK  ] T25 LIGAR para o pisca
+== Integracao com UART falsa ==
+[  OK  ] T30 pacote pela UART acende o LED
+[  OK  ] T31 RX desabilitado nao trava
+[  OK  ] T32 invalido e depois valido
+[  OK  ] T33 timeout sem bytes novos
+
+24 de 25 testes passaram
+codigo de saida: 1

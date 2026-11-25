@@ -1,0 +1,52 @@
+# Diagrama de sequencia: recepcao de um pacote pela UART
+# Gerar em https://play.d2lang.com/ (colar este codigo) e exportar como PNG/SVG
+
+shape: sequence_diagram
+
+PC: "PC\n(envia_pacote.py)"
+UART_Hardware: "UART0\n(hardware)"
+ISR: "uart_isr()\n(interrupcao)"
+Fila: "fila_rx\n(k_msgq)"
+App: "main()\n(laco a cada 5 ms)"
+Receptor: "Receptor\n(protocolo.cpp)"
+Led: "EstadoLed\n(led_estado.cpp)"
+LED_RGB: "LED RGB\n(GPIO)"
+
+PC -> UART_Hardware: "01 FF 00 00 01 FF\n(ID R G B ACAO CHECK)"
+
+bytes: "para cada byte" {
+  UART_Hardware -> ISR: "RX pronto (interrupcao)"
+  ISR -> UART_Hardware: "uart_fifo_read()"
+  ISR -> Fila: "k_msgq_put(byte)"
+}
+
+leitura: "laco principal" {
+  App -> Fila: "k_msgq_get(K_NO_WAIT)"
+  Fila -> App: "byte"
+  App -> Receptor: "recebe(byte, agora)"
+  Receptor -> App: "INCOMPLETO (bytes 1 a 5)"
+}
+
+valido: "alt: 6o byte, ID e CHECK corretos" {
+  Receptor -> App: "PACOTE_OK"
+  App -> Led: "aplica(comando)"
+  App -> LED_RGB: "gpio_pin_set_dt()"
+  App -> PC: "123;RX;OK;LIGAR;255;0;0"
+}
+
+invalido: "alt: ID errado, CHECK errado ou acao invalida" {
+  Receptor -> App: "ERRO_ID / ERRO_CHECK / ERRO_ACAO"
+  App -> PC: "123;RX;ERRO_CHECK"
+}
+
+truncado: "alt: parou de chegar byte por mais de 50 ms" {
+  App -> Receptor: "verifica_timeout(agora)"
+  Receptor -> App: "ERRO_TIMEOUT (descarta o pedaco)"
+  App -> PC: "123;RX;ERRO_TIMEOUT"
+}
+
+pisca: "loop: PISCA 1 s ou 2 s" {
+  App -> Led: "atualiza(agora)"
+  App -> LED_RGB: "liga / desliga"
+  App -> PC: "123;LED;ON / OFF"
+}

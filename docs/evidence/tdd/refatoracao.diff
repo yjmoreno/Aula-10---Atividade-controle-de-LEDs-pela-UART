@@ -1,0 +1,239 @@
+diff --git a/firmware/src/led_estado.cpp b/firmware/src/led_estado.cpp
+index ec69703..76396c0 100644
+--- a/firmware/src/led_estado.cpp
++++ b/firmware/src/led_estado.cpp
+@@ -1,42 +1,47 @@
+ #include "led_estado.h"
+ 
+-/* TDD - etapa 2: o minimo para os testes passarem */
+-
+ void EstadoLed::aplica(const Comando &c, uint32_t agora_ms)
+ {
+-    if (c.acao == ACAO_LIGAR) {
+-        cor_r = c.r; cor_g = c.g; cor_b = c.b;
+-        ligado = true;
+-        pisca_ms = 0;
+-    }
+-    if (c.acao == ACAO_DESLIGAR) {
+-        ligado = false;
+-        pisca_ms = 0;
+-    }
+-    if (c.acao == ACAO_TOGGLE) {
+-        cor_r = c.r; cor_g = c.g; cor_b = c.b;
+-        ligado = !ligado;
+-        pisca_ms = 0;
++    if (c.acao != ACAO_DESLIGAR) {        /* so o DESLIGAR nao muda a cor */
++        cor_r = c.r;
++        cor_g = c.g;
++        cor_b = c.b;
+     }
+-    if (c.acao == ACAO_PISCA_1S) {
+-        cor_r = c.r; cor_g = c.g; cor_b = c.b;
+-        ligado = true;
+-        pisca_ms = 1000;
+-        t_ultima_troca = agora_ms;
+-    }
+-    if (c.acao == ACAO_PISCA_2S) {
+-        cor_r = c.r; cor_g = c.g; cor_b = c.b;
+-        ligado = true;
+-        pisca_ms = 2000;
+-        t_ultima_troca = agora_ms;
++    pisca_ms = 0;                         /* qualquer comando novo para o pisca */
++
++    switch (c.acao) {
++    case ACAO_LIGAR:    ligado = true;    break;
++    case ACAO_DESLIGAR: ligado = false;   break;
++    case ACAO_TOGGLE:   ligado = !ligado; break;
++    case ACAO_PISCA_1S: inicia_pisca(1000, agora_ms); break;
++    case ACAO_PISCA_2S: inicia_pisca(2000, agora_ms); break;
+     }
+ }
+ 
++void EstadoLed::inicia_pisca(uint32_t periodo_ms, uint32_t agora_ms)
++{
++    ligado = true;                        /* comeca aceso */
++    pisca_ms = periodo_ms;
++    t_ultima_troca = agora_ms;
++}
++
+ void EstadoLed::atualiza(uint32_t agora_ms)
+ {
+     if (pisca_ms > 0 && agora_ms - t_ultima_troca >= pisca_ms) {
+         ligado = !ligado;
+-        t_ultima_troca = t_ultima_troca + pisca_ms;
++        t_ultima_troca += pisca_ms;       /* soma o periodo: o erro nao acumula */
++    }
++}
++
++static void conta(Contadores &cont, Resultado r)
++{
++    switch (r) {
++    case PACOTE_OK:    cont.ok++;           break;
++    case ERRO_ID:      cont.erro_id++;      break;
++    case ERRO_CHECK:   cont.erro_check++;   break;
++    case ERRO_ACAO:    cont.erro_acao++;    break;
++    case ERRO_TIMEOUT: cont.erro_timeout++; break;
++    case INCOMPLETO:                        break;
+     }
+ }
+ 
+@@ -45,14 +50,12 @@ int processa_uart(LeituraUart ler, Receptor &rx, EstadoLed &led,
+ {
+     int lidos = 0;
+     uint8_t byte;
+-    while (ler(&byte) == 0) {
++    while (ler(&byte) == 0) {             /* sem dado (ou RX desligado): sai na hora */
+         lidos++;
+         Resultado r = rx.recebe(byte, agora_ms);
+-        if (r == PACOTE_OK) { cont.ok++; led.aplica(rx.comando(), agora_ms); }
+-        if (r == ERRO_ID) cont.erro_id++;
+-        if (r == ERRO_CHECK) cont.erro_check++;
+-        if (r == ERRO_ACAO) cont.erro_acao++;
++        conta(cont, r);
++        if (r == PACOTE_OK) led.aplica(rx.comando(), agora_ms);
+     }
+-    if (rx.verifica_timeout(agora_ms) == ERRO_TIMEOUT) cont.erro_timeout++;
++    conta(cont, rx.verifica_timeout(agora_ms));
+     return lidos;
+ }
+diff --git a/firmware/src/led_estado.h b/firmware/src/led_estado.h
+index fb34045..2c1fb94 100644
+--- a/firmware/src/led_estado.h
++++ b/firmware/src/led_estado.h
+@@ -21,6 +21,8 @@ public:
+     uint32_t periodo_pisca() const { return pisca_ms; }
+ 
+ private:
++    void inicia_pisca(uint32_t periodo_ms, uint32_t agora_ms);
++
+     bool ligado = false;
+     uint8_t cor_r = 0, cor_g = 0, cor_b = 0;
+     uint32_t pisca_ms = 0;        /* 0 = sem pisca */
+diff --git a/firmware/src/protocolo.cpp b/firmware/src/protocolo.cpp
+index 2a1ea28..16d3a21 100644
+--- a/firmware/src/protocolo.cpp
++++ b/firmware/src/protocolo.cpp
+@@ -1,6 +1,7 @@
+ #include "protocolo.h"
+ 
+-/* TDD - etapa 2: o minimo para os testes passarem */
++/* Posicao de cada campo dentro do pacote */
++enum { POS_ID = 0, POS_R, POS_G, POS_B, POS_ACAO, POS_CHECK };
+ 
+ uint8_t check_xor(const uint8_t *dados, size_t n)
+ {
+@@ -9,63 +10,63 @@ uint8_t check_xor(const uint8_t *dados, size_t n)
+     return x;
+ }
+ 
++/* CRC-8 com polinomio x^8 + x^2 + x + 1 (0x07), valor inicial 0x00 */
+ uint8_t check_crc8(const uint8_t *dados, size_t n)
+ {
+     uint8_t crc = 0x00;
+     for (size_t i = 0; i < n; i++) {
+         crc ^= dados[i];
+-        for (int b = 0; b < 8; b++) {
+-            if (crc & 0x80) crc = (uint8_t)((crc << 1) ^ 0x07);
+-            else crc = (uint8_t)(crc << 1);
+-        }
++        for (int b = 0; b < 8; b++)
++            crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ 0x07) : (uint8_t)(crc << 1);
+     }
+     return crc;
+ }
+ 
++static bool acao_valida(uint8_t a)
++{
++    return a >= ACAO_LIGAR && a <= ACAO_PISCA_2S;
++}
++
+ Receptor::Receptor(uint8_t meu_id, uint32_t timeout_ms, bool usa_crc8)
+     : id(meu_id), timeout(timeout_ms), crc8(usa_crc8), n(0), t_ultimo_byte(0), ultimo{} {}
+ 
++bool Receptor::passou_do_prazo(uint32_t agora_ms) const
++{
++    return n > 0 && agora_ms - t_ultimo_byte > timeout;
++}
++
+ Resultado Receptor::recebe(uint8_t byte, uint32_t agora_ms)
+ {
+-    if (n > 0 && agora_ms - t_ultimo_byte > timeout) {
+-        n = 0;
+-    }
++    if (passou_do_prazo(agora_ms)) n = 0;     /* pacote velho, pela metade */
+     t_ultimo_byte = agora_ms;
+ 
+-    if (n == 0 && byte != id) {
+-        return ERRO_ID;
+-    }
+-    buf[n] = byte;
+-    n = n + 1;
+-    if (n < PACOTE_TAM) {
+-        return INCOMPLETO;
+-    }
++    /* Todo pacote comeca pelo nosso ID. Qualquer outro byte nessa posicao
++     * e descartado na hora, e assim o receptor se ressincroniza sozinho. */
++    if (n == 0 && byte != id) return ERRO_ID;
+ 
+-    n = 0;
+-    uint8_t esperado;
+-    if (crc8) {
+-        esperado = check_crc8(buf, 5);
+-    } else {
+-        esperado = buf[0] ^ buf[1] ^ buf[2] ^ buf[3] ^ buf[4];
+-    }
+-    if (buf[5] != esperado) {
+-        return ERRO_CHECK;
+-    }
+-    if (buf[4] < 0x01 || buf[4] > 0x05) {
+-        return ERRO_ACAO;
+-    }
+-    ultimo.r = buf[1];
+-    ultimo.g = buf[2];
+-    ultimo.b = buf[3];
+-    ultimo.acao = buf[4];
++    buf[n++] = byte;
++    if (n < PACOTE_TAM) return INCOMPLETO;
++
++    n = 0;                                    /* pacote completo: valida */
++    return valida_pacote();
++}
++
++Resultado Receptor::valida_pacote()
++{
++    uint8_t esperado = crc8 ? check_crc8(buf, POS_CHECK) : check_xor(buf, POS_CHECK);
++    if (buf[POS_CHECK] != esperado) return ERRO_CHECK;
++    if (!acao_valida(buf[POS_ACAO])) return ERRO_ACAO;
++
++    ultimo.r = buf[POS_R];
++    ultimo.g = buf[POS_G];
++    ultimo.b = buf[POS_B];
++    ultimo.acao = buf[POS_ACAO];
+     return PACOTE_OK;
+ }
+ 
+ Resultado Receptor::verifica_timeout(uint32_t agora_ms)
+ {
+-    if (n > 0 && agora_ms - t_ultimo_byte > timeout) {
+-        n = 0;
+-        return ERRO_TIMEOUT;
+-    }
+-    return INCOMPLETO;
++    if (!passou_do_prazo(agora_ms)) return INCOMPLETO;
++    n = 0;
++    return ERRO_TIMEOUT;
+ }
+diff --git a/firmware/src/protocolo.h b/firmware/src/protocolo.h
+index 9da2540..9cbd0c2 100644
+--- a/firmware/src/protocolo.h
++++ b/firmware/src/protocolo.h
+@@ -53,6 +53,9 @@ public:
+     int pendentes() const { return n; }
+ 
+ private:
++    bool passou_do_prazo(uint32_t agora_ms) const;
++    Resultado valida_pacote();
++
+     uint8_t id;
+     uint32_t timeout;
+     bool crc8;

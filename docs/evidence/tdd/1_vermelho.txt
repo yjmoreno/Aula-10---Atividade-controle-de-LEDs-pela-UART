@@ -1,0 +1,78 @@
+$ ./roda_testes.sh   (etapa 1: testes escritos, codigo vazio)
+== Protocolo ==
+    FALHOU linha 50: rx.recebe(p[5], t++) == PACOTE_OK
+    FALHOU linha 52: c.r == 0xFF && c.g == 0x00 && c.b == 0x00 && c.acao == ACAO_LIGAR
+[FALHOU] T01 entrada valida simples
+    FALHOU linha 59: check_xor(d, 5) == 0xFF
+[FALHOU] T02 CHECK por XOR
+    FALHOU linha 70: envia(rx, p, 6, t) == PACOTE_OK
+    FALHOU linha 71: rx.comando().acao == a
+    FALHOU linha 70: envia(rx, p, 6, t) == PACOTE_OK
+    FALHOU linha 71: rx.comando().acao == a
+    FALHOU linha 70: envia(rx, p, 6, t) == PACOTE_OK
+    FALHOU linha 71: rx.comando().acao == a
+    FALHOU linha 70: envia(rx, p, 6, t) == PACOTE_OK
+    FALHOU linha 71: rx.comando().acao == a
+    FALHOU linha 70: envia(rx, p, 6, t) == PACOTE_OK
+    FALHOU linha 71: rx.comando().acao == a
+[FALHOU] T03 as 5 acoes sao aceitas
+[  OK  ] T04 entrada vazia
+    FALHOU linha 88: rx.recebe(p[0], t++) == ERRO_ID
+[FALHOU] T05 ID errado
+    FALHOU linha 98: envia(rx, p, 6, t) == ERRO_CHECK
+[FALHOU] T06 CHECK errado
+    FALHOU linha 109: envia(rx, p, 6, t) == ERRO_ACAO
+    FALHOU linha 111: envia(rx, p, 6, t) == ERRO_ACAO
+[FALHOU] T07 acao invalida
+    FALHOU linha 121: rx.pendentes() == 3
+    FALHOU linha 123: rx.verifica_timeout(t + TIMEOUT + 1) == ERRO_TIMEOUT
+    FALHOU linha 126: envia(rx, p, 6, t) == PACOTE_OK
+[FALHOU] T08 transmissao interrompida (timeout)
+    FALHOU linha 138: envia(rx, p, 6, t) == PACOTE_OK
+    FALHOU linha 139: rx.comando().b == 0xFF
+[FALHOU] T09 interrompida, detectada no proximo byte
+    FALHOU linha 146: rx.recebe(0x55, t++) == ERRO_ID
+    FALHOU linha 147: rx.recebe(0xAA, t++) == ERRO_ID
+    FALHOU linha 149: envia(rx, p, 6, t) == PACOTE_OK
+[FALHOU] T10 lixo antes do pacote
+    FALHOU linha 165: ok == 1000
+[FALHOU] T11 buffer grande: 1000 pacotes seguidos
+    FALHOU linha 182: envia(rx, p, 6, t) == PACOTE_OK
+[FALHOU] T12 buffer grande: 10000 bytes de lixo
+    FALHOU linha 191: rx.comando().acao == ACAO_LIGAR
+[FALHOU] T13 intervalo igual ao timeout
+== Bonus CRC-8 ==
+    FALHOU linha 200: check_crc8(d, 9) == 0xF4
+[FALHOU] T14 CRC-8 valor de referencia
+    FALHOU linha 209: envia(rx, p, 6, t) == ERRO_CHECK
+    FALHOU linha 212: envia(rx, p, 6, t) == PACOTE_OK
+[FALHOU] T15 receptor no modo CRC-8
+== LED ==
+    FALHOU linha 226: led.aceso()
+    FALHOU linha 227: led.r() == 0 && led.g() == 0xFF && led.b() == 0
+[FALHOU] T20 LIGAR
+[  OK  ] T21 DESLIGAR
+    FALHOU linha 242: led.aceso() && led.b() == 0xFF
+[FALHOU] T22 TOGGLE
+    FALHOU linha 251: led.aceso()
+    FALHOU linha 252: led.aceso()
+    FALHOU linha 255: led.aceso()
+[FALHOU] T23 PISCA 1 s
+    FALHOU linha 262: led.aceso()
+    FALHOU linha 264: led.aceso()
+[FALHOU] T24 PISCA 2 s
+    FALHOU linha 273: led.aceso() && led.periodo_pisca() == 0
+[FALHOU] T25 LIGAR para o pisca
+== Integracao com UART falsa ==
+    FALHOU linha 298: processa_uart(uart_falsa, rx, led, c, 0) == 6
+    FALHOU linha 299: led.aceso() && c.ok == 1
+[FALHOU] T30 pacote pela UART acende o LED
+[  OK  ] T31 RX desabilitado nao trava
+    FALHOU linha 324: c.erro_check == 1 && c.ok == 1
+    FALHOU linha 325: led.aceso() && led.b() == 0xFF
+[FALHOU] T32 invalido e depois valido
+    FALHOU linha 336: c.erro_timeout == 1 && rx.pendentes() == 0
+[FALHOU] T33 timeout sem bytes novos
+
+3 de 25 testes passaram
+codigo de saida: 1

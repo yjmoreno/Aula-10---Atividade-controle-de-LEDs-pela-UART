@@ -1,0 +1,16 @@
+-bash-5.2$ ~/.platformio/penv/bin/python ferramentas/envia_pacote.py /dev/cu.usbmodem11302 --roteiro --saida docs/evidence/placa/roteiro_placa.txt
+[  OK  ] P01 LIGAR vermelho  (67959;RX;OK;LIGAR;255;0;0 | 67962;LED;ON;255;0;0)
+[  OK  ] P02 DESLIGAR  (68285;RX;OK;DESLIGAR;0;0;0 | 68287;LED;OFF)
+[  OK  ] P03 TOGGLE duas vezes (acende e apaga)  (68600;RX;OK;TOGGLE;0;255;0 | 68602;LED;ON;0;255;0 | 68925;RX;OK;TOGGLE;0;255;0 | 68927;LED;OFF)
+[  OK  ] P04 ID errado e recusado  (69245;RX;ERRO_ID)
+[  OK  ] P05 CHECK errado e recusado  (69568;RX;ERRO_CHECK)
+[  OK  ] P06 acao invalida e recusada  (69896;RX;ERRO_ACAO)
+[  OK  ] P07 pacote truncado (3 bytes) cai no timeout  (70270;RX;ERRO_TIMEOUT)
+[  OK  ] P08 lixo, silencio e pacote valido: ressincroniza  (70705;RX;ERRO_TIMEOUT | 70758;RX;OK;LIGAR;0;0;255 | 70761;LED;ON;0;0;255)
+[FALHOU] P09 buffer grande: 50 pacotes seguidos (300 bytes)  (11 de 50 OK)
+[  OK  ] P10 entrada vazia: 2 s sem enviar nada  (0 linhas RX)
+[  OK  ] P11 PISCA 1 s  (intervalos [997, 1000, 1002, 1001] ms)
+[  OK  ] P12 PISCA 2 s  (intervalos [2000, 2001, 2001] ms)
+
+11 de 12 casos passaram
+log salvo em docs/evidence/placa/roteiro_placa.txt

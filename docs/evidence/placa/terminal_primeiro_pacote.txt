@@ -1,0 +1,4 @@
+-bash-5.2$ ~/.platformio/penv/bin/python ferramentas/envia_pacote.py /dev/cu.usbmodem11302 ligar 255 0 0
+>> 01 FF 00 00 01 FF
+219085;RX;OK;LIGAR;255;0;0
+219088;LED;ON;255;0;0
